@@ -181,6 +181,12 @@
   .wa-card p { color: #c4e9d5; margin-bottom: 20px; }
   .btn-wa { background: var(--open); color: #06200f; }
   .btn-wa:hover { background: #7aeeb6; }
+  .alt-contact { margin-top: 18px; font-size: .95rem; }
+  .alt-contact a { color: var(--amber); text-decoration: none; border-bottom: 1px solid var(--amber-dim); }
+  .alt-contact a:hover { border-bottom-color: var(--amber); }
+  .form-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  footer a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+  footer a:hover { border-bottom-color: var(--amber); }
   form { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 36px; display: grid; gap: 18px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   label { display: grid; gap: 6px; font-size: .88rem; font-weight: 500; color: var(--muted); }
@@ -431,6 +437,7 @@
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
             Message me on WhatsApp
           </a>
+          <p class="alt-contact" style="margin-bottom:0">Prefer email? Write to <a href="mailto:alevy@pointcaptain.com" data-email>alevy@pointcaptain.com</a> and I'll reply the same day.</p>
         </div>
       </div>
 
@@ -458,9 +465,12 @@
           </label>
         </div>
         <label>Which points do you have? <textarea name="points" placeholder="e.g. ~400k Amex, 150k United. Balances only, no logins."></textarea></label>
-        <button class="btn btn-primary" type="submit">Send me the trip on WhatsApp</button>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Send me the trip on WhatsApp</button>
+          <button class="btn btn-ghost" type="button" id="email-send">Send by email instead</button>
+        </div>
         <p class="form-note">Balances only. Please don't send passwords or card numbers here.</p>
-        <p class="form-ok" id="form-ok">WhatsApp should have opened with your trip filled in. Just hit send.</p>
+        <p class="form-ok" id="form-ok">Your message should have opened with the trip filled in. Just hit send.</p>
       </form>
     </div>
   </section>
@@ -470,6 +480,7 @@
   <div class="wrap">
     <span>&copy; <span id="yr"></span> Point Captain</span>
     <span>Award flights booked on your own points.</span>
+    <span><a href="mailto:alevy@pointcaptain.com" data-email>alevy@pointcaptain.com</a></span>
   </div>
 </footer>
 
@@ -532,11 +543,15 @@
   const WA_NUMBER = "16038927236";
   document.querySelectorAll("[data-wa]").forEach(a => a.href = `https://wa.me/${WA_NUMBER}`);
 
-  // ---- Form: opens WhatsApp with the trip details pre-filled (no server needed) ----
-  document.getElementById("trip-form").addEventListener("submit", e => {
-    e.preventDefault();
-    const d = Object.fromEntries(new FormData(e.target));
-    const msg = [
+  // ---- Email: set your address once here ----
+  const EMAIL = "alevy@pointcaptain.com";
+  document.querySelectorAll("[data-email]").forEach(a => { a.href = `mailto:${EMAIL}`; a.textContent = EMAIL; });
+
+  // ---- Form: opens WhatsApp or email with the trip details pre-filled (no server needed) ----
+  const form = document.getElementById("trip-form");
+  const tripMessage = () => {
+    const d = Object.fromEntries(new FormData(form));
+    return [
       `Hi, I'm ${d.name}. I'd like help with a trip.`,
       `Route: ${d.from || "?"} to ${d.to || "?"}`,
       `When: ${d.dates || "flexible"}`,
@@ -544,7 +559,16 @@
       `Points: ${d.points || "-"}`,
       `Email: ${d.email}${d.phone ? " | Phone: " + d.phone : ""}`
     ].join("\n");
-    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(tripMessage())}`, "_blank");
+    document.getElementById("form-ok").style.display = "block";
+  });
+  document.getElementById("email-send").addEventListener("click", () => {
+    if (!form.reportValidity()) return;
+    const subject = encodeURIComponent("Trip request from the website");
+    window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${encodeURIComponent(tripMessage())}`;
     document.getElementById("form-ok").style.display = "block";
   });
 
