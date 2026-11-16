@@ -208,6 +208,7 @@
   textarea { min-height: 96px; resize: vertical; }
   .form-note { font-size: .82rem; color: var(--muted); }
   .form-ok { display: none; color: var(--open); font-weight: 600; }
+  .form-actions button:disabled { opacity: .55; cursor: default; }
 
   footer { border-top: 1px solid var(--line); padding: 36px 0; color: var(--muted); font-size: .9rem; }
   footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
@@ -569,16 +570,35 @@
       `Email: ${d.email}${d.phone ? " | Phone: " + d.phone : ""}`
     ].join("\n");
   };
+  // One press opens one message. Both buttons lock until the visitor edits the
+  // form (a different trip) or 30 seconds pass, so repeat presses can't send duplicates.
+  const sendButtons = [...form.querySelectorAll(".form-actions button")];
+  const sendLabels = sendButtons.map(b => b.textContent);
+  let locked = false, unlockTimer;
+  const unlock = () => {
+    locked = false; clearTimeout(unlockTimer);
+    sendButtons.forEach((b, i) => { b.disabled = false; b.textContent = sendLabels[i]; });
+  };
+  const lock = used => {
+    locked = true;
+    sendButtons.forEach(b => { b.disabled = true; });
+    used.textContent = "Opened. Hit send there";
+    document.getElementById("form-ok").style.display = "block";
+    unlockTimer = setTimeout(unlock, 30000);
+  };
+  form.addEventListener("input", () => { if (locked) unlock(); });
+
   form.addEventListener("submit", e => {
     e.preventDefault();
+    if (locked) return;
+    lock(sendButtons[0]);
     window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(tripMessage())}`, "_blank");
-    document.getElementById("form-ok").style.display = "block";
   });
   document.getElementById("email-send").addEventListener("click", () => {
-    if (!form.reportValidity()) return;
+    if (locked || !form.reportValidity()) return;
+    lock(sendButtons[1]);
     const subject = encodeURIComponent("Trip request from the website");
     window.location.href = `mailto:${EMAIL}?subject=${subject}&body=${encodeURIComponent(tripMessage())}`;
-    document.getElementById("form-ok").style.display = "block";
   });
 
   document.getElementById("yr").textContent = new Date().getFullYear();
